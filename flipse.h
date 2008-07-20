@@ -1,2 +1,3 @@
 void printAllWindows();
-void foundWindow( Display *display, Window win);
+void embedWindow( Window win );
+int isDockapp( Window win );
