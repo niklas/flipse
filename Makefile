@@ -9,7 +9,7 @@ all: build
 
 build: flipse
 
-flipse:
+flipse: flipse.c
 	$(CC) -o flipse flipse.c $(CCOPTS) $(LIBS) $(INCLUDES)
 
 
