@@ -8,6 +8,7 @@ AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
 AC_PROG_CC
+AC_STDC_HEADERS
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lX11':
@@ -16,6 +17,17 @@ AC_CHECK_LIB([X11], [main])
 AC_CHECK_LIB([Xaw], [main])
 # FIXME: Replace `main' with a function in `-lXt':
 AC_CHECK_LIB([Xt], [main])
+
+PKG_PROG_PKG_CONFIG([0.14.0])
+PKG_CHECK_MODULES(GTK,
+                  [gtk+-2.0 >= 2.4.0],
+                  [AC_DEFINE([HAVE_GTK],,[GTK+ is supported])],
+                  [AC_MSG_RESULT(no)])
+LIBS="$LIBS $GTK_LIBS"
+CFLAGS="$CFLAGS $GTK_CFLAGS"
+
+AC_SUBST(DEPS_CFLAGS)
+AC_SUBST(DEPS_LIBS)
 
 # Checks for header files.
 AC_HEADER_STDC

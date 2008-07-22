@@ -1,5 +1,7 @@
+#include <config.h>
 #include <X11/Intrinsic.h>
 #include <X11/Xaw/Label.h>
+#include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 #include "flipse.h"
