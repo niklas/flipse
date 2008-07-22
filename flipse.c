@@ -91,7 +91,7 @@ void embedWindow(Window win) {
 
     ok = XFetchName (display, win, &winName);
     if (0 != ok) {
-        printf("Embed Window '%s'\n", winName);
+        printf("Embed Window '%s'", winName);
         XFree(winName);
     }
 }
