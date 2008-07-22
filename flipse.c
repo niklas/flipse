@@ -4,6 +4,9 @@
 #include <string.h>
 #include "flipse.h"
 
+#define DEFAULT_DOCKKAPP_WIDTH 64
+#define DEFAULT_DOCKKAPP_HEIGHT 64
+
 static Display *display;
 
 int main (int argc, char **argv) {
@@ -41,60 +44,32 @@ void printAllWindows() {
     XQueryTree( XtDisplay (flipse), RootWindowOfScreen( XtScreen (flipse) ),
             &root, &parent, &children, &children_count);
     for(i = 0; i < children_count; i++) {
-        if (isDockapp (children[i]))
-            embedWindow (children[i]);
+        checkIfIsDockapp (children[i]);
     }
 }
 
-int isDockapp( Window win ) {
+void checkIfIsDockapp( Window win ) {
     Status ok;
     char* winName;
-    XClassHint hint;
     XWMHints *wmhints;
-    XSizeHints sizehints;
-    int isDockapp = FALSE;
-    long supplied_return;
 
-    ok = XFetchName (display, win, &winName);
-    if (0 != ok) {
-        if (0 != strncmp (winName, "wm", 2)) {
+    wmhints = XGetWMHints(display, win);
+    if (!wmhints) return;
+
+    if (  wmhints->initial_state == WithdrawnState   ||
+          wmhints->flags == (WindowGroupHint | StateHint | IconWindowHint)
+       ) {
+        // Seems to be a Dockapp
+        ok = XFetchName (display, win, &winName);
+        if (0 != ok) {
+            if (0 != strncmp (winName, "wm", 2)) {
+            }
+            printf("New Dockapp: %s\n", winName);
             XFree(winName);
-            return (FALSE);
         }
     }
 
-    ok = XGetWMNormalHints (display, win, &sizehints, &supplied_return);
-    if (0 != ok) {
-        printf("Got WMSizeHints, %li, %li\n", supplied_return, sizehints.flags);
-        printf("USSize: %i, %i\n", sizehints.width, sizehints.height);
-        printf("PSize: %i, %i\n", sizehints.width, sizehints.height);
-        printf("PMinSize: %i, %i\n", sizehints.min_width, sizehints.min_height);
-        printf("PMaxSize: %i, %i\n", sizehints.max_width, sizehints.max_height);
-        printf("PBaseSize: %i, %i\n", sizehints.base_width, sizehints.base_height);
-    }
-
-
-    wmhints = XGetWMHints(display, win);
-    if (NULL != wmhints) {
-        printf("WmHints Flags: %li\n", wmhints->flags);
-        if (wmhints->flags == (WindowGroupHint | StateHint | IconWindowHint))
-            printf("Found approriate flags\n");
-        XFree(wmhints);
-        if (isDockapp) return (TRUE);
-    }
-
-    ok = XGetClassHint (display, win, &hint );
-    if (0 != ok) {
-        printf("Hint name:%s, class:%s\n",hint.res_name, hint.res_class);
-        if (!strcmp(hint.res_class,"DockApp"))
-            isDockapp = TRUE;
-        XFree(hint.res_name);
-        XFree(hint.res_class);
-        if (isDockapp) return (TRUE);
-    }
-
-
-    return (isDockapp);
+    return;
 }
 
 void embedWindow(Window win) {
