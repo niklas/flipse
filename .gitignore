@@ -1,2 +1,7 @@
 *.swp
 flipse
+Makefile
+config.h
+config.status
+configure.scan
+*.log
