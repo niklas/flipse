@@ -17,7 +17,7 @@ typedef struct {
     GtkWidget *align;
 } Flipse;
 
-void printAllWindows();
+void scanAllWindows();
 void embedWindow( Window win );
 void checkIfIsDockapp( Window win );
 

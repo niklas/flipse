@@ -27,9 +27,9 @@ on_destroy (GtkWidget * widget, gpointer data)
 }
 
 static void
-on_window_opened (GtkWidget * widget, gpointer data)
+on_startup (GtkWidget * widget, gpointer data)
 {
-    printAllWindows();
+    scanAllWindows();
 }
 
 static Flipse* new_flipse() {
@@ -50,7 +50,7 @@ void setSize() {
     gtk_window_set_default_size (GTK_WINDOW (window), 140, 70);
 }
 
-void printAllWindows() {
+void scanAllWindows() {
     int dummy_argc=0;
     int i;
 
@@ -230,7 +230,7 @@ int main (int argc, char **argv) {
     g_signal_connect (G_OBJECT (window), "destroy",
             G_CALLBACK (on_destroy), NULL);
     g_signal_connect(G_OBJECT (window), "map", 
-            G_CALLBACK(on_window_opened), NULL);
+            G_CALLBACK(on_startup), NULL);
     flipse = new_flipse();
     gtk_container_add (GTK_CONTAINER(window), flipse->ebox);
     gtk_widget_show_all (window);
