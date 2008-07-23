@@ -25,6 +25,12 @@ on_destroy (GtkWidget * widget, gpointer data)
     gtk_main_quit ();
 }
 
+static void
+on_window_opened (GtkWidget * widget, gpointer data)
+{
+    printAllWindows();
+}
+
 static Flipse* new_flipse() {
     flipse = g_new0 (Flipse, 1);
     flipse->dapps = NULL;
@@ -51,6 +57,8 @@ void printAllWindows() {
 
     unsigned int children_count;
     Window root, parent, *children=NULL;
+
+    display = GDK_WINDOW_XDISPLAY(window->window);
 
     if (children != (Window *) NULL)
         XFree(children);
@@ -102,13 +110,14 @@ int main (int argc, char **argv) {
     gtk_container_set_border_width (GTK_CONTAINER (window), BORDER_WIDTH);
     setSize();
     g_signal_connect (G_OBJECT (window), "destroy",
-                  G_CALLBACK (on_destroy), NULL);
+            G_CALLBACK (on_destroy), NULL);
+    g_signal_connect(G_OBJECT (window), "map", 
+            G_CALLBACK(on_window_opened), NULL);
     flipse = new_flipse();
     gtk_container_add (GTK_CONTAINER(window), flipse->ebox);
     gtk_widget_show_all (window);
-    display = GDK_DISPLAY();
+    display = GDK_WINDOW_XDISPLAY(window->window);
     gtk_main ();
-    printAllWindows();
     return(0);
 }
 
