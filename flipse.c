@@ -9,8 +9,9 @@
 
 #define DEFAULT_DOCKAPP_WIDTH 64
 #define DEFAULT_DOCKAPP_HEIGHT 64
-#define BORDER_WIDTH 20
-#define SPACING 5
+#define BORDER_WIDTH 0
+#define SPACING 0
+#define BUF_MAX 4096
 
 Display *display = NULL;
 GtkWidget *window = NULL;
@@ -69,6 +70,14 @@ void printAllWindows() {
     }
 }
 
+char* getDockappName ( Window * win ) {
+    char * winName;
+    if (0 != XFetchName (display, * win, &winName))
+        return g_strdup(winName);
+    else
+        return NULL;
+}
+
 void checkIfIsDockapp( Window win ) {
     Status ok;
     char* winName;
@@ -97,6 +106,7 @@ void checkIfIsDockapp( Window win ) {
 void embedWindow(Window win) {
     Status ok;
     char* winName;
+    gchar* command = NULL;
     int width, height;
     DockappNode *dapp = NULL;
     XWindowAttributes attr;
@@ -105,6 +115,11 @@ void embedWindow(Window win) {
     wmhints = XGetWMHints(display, win);
     ok = XFetchName (display, win, &winName);
     if (0 != ok) {
+        /*command = dockappCommand(win);
+        if (!command) {
+            XFree(wmhints);
+            return;
+        } */
         dapp = g_new0(DockappNode, 1);
         dapp->s = GTK_SOCKET(gtk_socket_new());
 
@@ -127,11 +142,20 @@ void embedWindow(Window win) {
             height = attr.height;
         }
 
+        if (width > DEFAULT_DOCKAPP_WIDTH || height > DEFAULT_DOCKAPP_HEIGHT) {
+            /* This is no dockapp, bigger than 64 pix */
+            gtk_widget_destroy (GTK_WIDGET(dapp->s));
+         //   g_free(command);
+            g_free(dapp);
+            XFree(wmhints);
+            return;
+        }
+
         gtk_widget_set_size_request(GTK_WIDGET(dapp->s), width, height);
         dapp->name = g_strdup(winName);
 
         gtk_box_pack_start (GTK_BOX(flipse->box), GTK_WIDGET(dapp->s), FALSE, FALSE, 0);
-        gtk_widget_realize (dapp->s);
+        gtk_widget_realize (GTK_WIDGET(dapp->s));
         gtk_socket_add_id(dapp->s, dapp->i);
         gtk_widget_show(GTK_WIDGET(dapp->s));
         
@@ -139,6 +163,63 @@ void embedWindow(Window win) {
         XFree(winName);
     }
 
+}
+
+
+/* find the command to (re)start the dockapp 
+ * stolen from wmdock
+ * */
+gchar *dockappCommand(Window *w)
+{
+ gchar *cmd = NULL;
+ int wpid = 0;
+ int argc = 0;
+ int fcnt, i;
+ char **argv;
+ FILE *procfp = NULL;
+ char buf[BUF_MAX];
+
+ XGetCommand(display, *w, &argv, &argc);
+ if (argc > 0) {
+    argv = (char **) realloc(argv, sizeof(char *) * (argc + 1));
+    argv[argc] = NULL;
+    cmd = g_strjoinv (" ", argv);
+    XFreeStringList(argv);
+ } else {
+    /* Try to get the command line from the proc fs. */
+    printf("Waahh, cannot get pid yet and don't want to use wnck!\n");
+    return (gchar*) "xeyes";
+
+    if(wpid) {
+       sprintf(buf, "/proc/%d/cmdline", wpid);
+
+       procfp = fopen(buf, "r");
+       
+       if (procfp) {
+          fcnt = read(fileno(procfp), buf, BUF_MAX);
+
+          cmd = g_malloc(fcnt+2);
+          if (!cmd) return (NULL);
+
+          for (i = 0; i < fcnt; i++) {
+           if (buf[i] == 0)
+            *(cmd+i) = ' ';
+           else
+            *(cmd+i) = buf[i];
+          }
+          *(cmd+(i-1)) = 0;
+
+          fclose(procfp);
+       }
+    }
+ }
+ 
+ if (!cmd) {
+  /* If nothing helps fallback to the window name. */
+  cmd = getDockappName(w);
+ }
+
+ return(cmd);
 }
 
 int main (int argc, char **argv) {
