@@ -7,8 +7,8 @@
 #include <string.h>
 #include "flipse.h"
 
-#define DEFAULT_DOCKKAPP_WIDTH 64
-#define DEFAULT_DOCKKAPP_HEIGHT 64
+#define DEFAULT_DOCKAPP_WIDTH 64
+#define DEFAULT_DOCKAPP_HEIGHT 64
 #define BORDER_WIDTH 20
 #define SPACING 5
 
@@ -86,6 +86,7 @@ void checkIfIsDockapp( Window win ) {
             if (0 != strncmp (winName, "wm", 2)) {
             }
             printf("New Dockapp: %s\n", winName);
+            embedWindow(win);
             XFree(winName);
         }
     }
@@ -96,12 +97,48 @@ void checkIfIsDockapp( Window win ) {
 void embedWindow(Window win) {
     Status ok;
     char* winName;
+    int width, height;
+    DockappNode *dapp = NULL;
+    XWindowAttributes attr;
+    XWMHints *wmhints;
 
+    wmhints = XGetWMHints(display, win);
     ok = XFetchName (display, win, &winName);
     if (0 != ok) {
-        printf("Embed Window '%s'\n", winName);
+        dapp = g_new0(DockappNode, 1);
+        dapp->s = GTK_SOCKET(gtk_socket_new());
+
+        if (wmhints->initial_state == WithdrawnState && wmhints->icon_window) {
+            XUnmapWindow(
+                    GDK_DISPLAY_XDISPLAY(gdk_display_get_default()),
+                    win
+                    );
+            dapp->i = wmhints->icon_window;
+   
+        } else {
+            dapp->i = win; //gdk_x11_drawable_get_xid( GDK_DRAWABLE(win));
+        }
+
+        if (!XGetWindowAttributes(display, dapp->i, &attr)) {
+            width = DEFAULT_DOCKAPP_WIDTH;
+            height = DEFAULT_DOCKAPP_HEIGHT;
+        } else {
+            width = attr.width;
+            height = attr.height;
+        }
+
+        gtk_widget_set_size_request(GTK_WIDGET(dapp->s), width, height);
+        dapp->name = g_strdup(winName);
+
+        gtk_box_pack_start (GTK_BOX(flipse->box), GTK_WIDGET(dapp->s), FALSE, FALSE, 0);
+        gtk_widget_realize (dapp->s);
+        gtk_socket_add_id(dapp->s, dapp->i);
+        gtk_widget_show(GTK_WIDGET(dapp->s));
+        
+        flipse->dapps=g_list_append(flipse->dapps, dapp);
         XFree(winName);
     }
+
 }
 
 int main (int argc, char **argv) {
