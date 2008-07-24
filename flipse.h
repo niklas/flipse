@@ -17,6 +17,7 @@ typedef struct {
     GtkWidget *align;
 } Flipse;
 
+void setSize();
 void scanAllWindows();
 void addWindow( WnckWindow * win );
 int addDapp (DockappNode *dapp);

@@ -40,12 +40,14 @@ on_window_opened (WnckScreen *  thescreen, WnckWindow * win, gpointer user_data)
     printf("A window got opened\n");
     if (isDockapp(win))
         addWindow(win);
+    setSize();
 }
 
 static void
 on_dapp_closed (GtkSocket *socket, DockappNode *dapp) {
     printf("An app closed\n");
     removeDapp(dapp);
+    setSize();
 }
 
 static Flipse* new_flipse() {
@@ -63,7 +65,12 @@ static Flipse* new_flipse() {
 }
 
 void setSize() {
-    gtk_window_set_default_size (GTK_WINDOW (window), 140, 70);
+    gint height, width;
+    gint appcount;
+    if (!flipse) return;
+    appcount = g_list_length(flipse->dapps);
+    printf("We have %i dockapps\n", appcount);
+    gtk_widget_set_size_request (GTK_WIDGET(window), (appcount * DEFAULT_DOCKAPP_WIDTH) + (2*BORDER_WIDTH) + 1, DEFAULT_DOCKAPP_HEIGHT);
 }
 
 int isDockapp( WnckWindow * win ) {
@@ -225,7 +232,9 @@ int main (int argc, char **argv) {
             G_CALLBACK(on_startup), NULL);
     flipse = new_flipse();
     gtk_container_add (GTK_CONTAINER(window), flipse->ebox);
+    gtk_window_set_resizable (GTK_WINDOW(window), FALSE);
     gtk_widget_show_all (window);
+    gtk_window_set_default_size (GTK_WINDOW (window), 140, 70);
     display = GDK_WINDOW_XDISPLAY(window->window);
     // FIXME find correct screen for main window
     screen = wnck_screen_get(0);
