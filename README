@@ -1,0 +1,9 @@
+= Intro
+
+Flipse is a small app that collects Windowmaker Dockapps into one window.
+This allows the usage of WM Dockapps in other Windowmanagers like wmii.
+
+= Thanks
+Code is heavily inspired by
+ * XFCE-WMDock
+ *
