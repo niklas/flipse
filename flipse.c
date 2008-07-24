@@ -7,6 +7,7 @@
 #include <gdk/gdkx.h>
 #define WNCK_I_KNOW_THIS_IS_UNSTABLE
 #include <libwnck/libwnck.h>
+#include <sys/signal.h>
 #include "flipse.h"
 
 #define DEFAULT_DOCKAPP_WIDTH 64
@@ -26,26 +27,25 @@ XtAppContext app;
 static void
 on_destroy (GtkWidget * widget, gpointer data)
 {
+    g_list_foreach(flipse->dapps, (GFunc)releaseDapp, NULL);
+    gtk_widget_destroy(GTK_WIDGET(flipse->box));
+    gtk_widget_destroy(GTK_WIDGET(flipse->align));
+    gtk_widget_destroy(GTK_WIDGET(flipse->ebox));
+    g_list_free(flipse->dapps);
+    g_free(flipse);
     gtk_main_quit ();
 }
 
 static void
-on_startup (GtkWidget * widget, gpointer data)
-{
-    printf("starting up..\n");
-}
-
-static void
 on_window_opened (WnckScreen *  thescreen, WnckWindow * win, gpointer user_data) {
-    printf("A window got opened\n");
-    if (isDockapp(win))
+    if (isDockapp(win)) {
         addWindow(win);
-    setSize();
+        setSize();
+    }
 }
 
 static void
 on_dapp_closed (GtkSocket *socket, DockappNode *dapp) {
-    printf("An app closed\n");
     removeDapp(dapp);
     setSize();
 }
@@ -69,7 +69,6 @@ void setSize() {
     gint appcount;
     if (!flipse) return;
     appcount = g_list_length(flipse->dapps);
-    printf("We have %i dockapps\n", appcount);
     gtk_widget_set_size_request (GTK_WIDGET(window), (appcount * DEFAULT_DOCKAPP_WIDTH) + (2*BORDER_WIDTH) + 1, DEFAULT_DOCKAPP_HEIGHT);
 }
 
@@ -124,6 +123,8 @@ void addWindow(WnckWindow * win) {
             dapp->i = xid; //gdk_x11_drawable_get_xid( GDK_DRAWABLE(win));
         }
 
+        dapp->original = xid;
+
         if (!XGetWindowAttributes(display, dapp->i, &attr)) {
             width = DEFAULT_DOCKAPP_WIDTH;
             height = DEFAULT_DOCKAPP_HEIGHT;
@@ -134,9 +135,7 @@ void addWindow(WnckWindow * win) {
 
         if (width > DEFAULT_DOCKAPP_WIDTH || height > DEFAULT_DOCKAPP_HEIGHT) {
             /* This is no dockapp, bigger than 64 pix */
-            gtk_widget_destroy (GTK_WIDGET(dapp->s));
-            g_free(command);
-            g_free(dapp);
+            removeDapp(dapp);
             XFree(wmhints);
             return;
         }
@@ -144,17 +143,24 @@ void addWindow(WnckWindow * win) {
         gtk_widget_set_size_request(GTK_WIDGET(dapp->s), width, height);
         dapp->name = g_strdup(winName);
 
-        gtk_box_pack_start (GTK_BOX(flipse->box), GTK_WIDGET(dapp->s), FALSE, FALSE, 0);
-        gtk_widget_realize (GTK_WIDGET(dapp->s));
-        gtk_socket_add_id(dapp->s, dapp->i);
-        gtk_widget_show(GTK_WIDGET(dapp->s));
+        if (!addDapp (dapp)) 
+            removeDapp (dapp);
 
-        g_signal_connect(dapp->s, "plug-removed", G_CALLBACK(on_dapp_closed), dapp);
-        
-        flipse->dapps=g_list_append(flipse->dapps, dapp);
         XFree(winName);
     }
 
+}
+
+int addDapp (DockappNode * dapp) {
+    gtk_box_pack_start (GTK_BOX(flipse->box), GTK_WIDGET(dapp->s), FALSE, FALSE, 0);
+    gtk_widget_realize (GTK_WIDGET(dapp->s));
+    gtk_socket_add_id(dapp->s, dapp->i);
+    gtk_widget_show(GTK_WIDGET(dapp->s));
+
+    g_signal_connect(dapp->s, "plug-removed", G_CALLBACK(on_dapp_closed), dapp);
+    
+    flipse->dapps=g_list_append(flipse->dapps, dapp);
+    return 1;
 }
 
 void removeDapp (DockappNode *dapp) {
@@ -163,6 +169,11 @@ void removeDapp (DockappNode *dapp) {
     g_free(dapp->name);
     g_free(dapp->cmd);
     g_free(dapp);
+}
+
+void releaseDapp (DockappNode *dapp) {
+    XReparentWindow (GDK_DISPLAY(), dapp->i, GDK_ROOT_WINDOW(), 0,0);
+    XMapWindow(display, dapp->original);
 }
 
 
@@ -225,11 +236,9 @@ int main (int argc, char **argv) {
     gtk_init (&argc, &argv);
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_container_set_border_width (GTK_CONTAINER (window), BORDER_WIDTH);
-    setSize();
+    signal(SIGINT, on_destroy);
     g_signal_connect (G_OBJECT (window), "destroy",
             G_CALLBACK (on_destroy), NULL);
-    g_signal_connect(G_OBJECT (window), "map", 
-            G_CALLBACK(on_startup), NULL);
     flipse = new_flipse();
     gtk_container_add (GTK_CONTAINER(window), flipse->ebox);
     gtk_window_set_resizable (GTK_WINDOW(window), FALSE);
@@ -240,6 +249,7 @@ int main (int argc, char **argv) {
     screen = wnck_screen_get(0);
     g_signal_connect(G_OBJECT(screen), "window_opened",
             G_CALLBACK(on_window_opened), NULL);
+
     gtk_main ();
     return(0);
 }

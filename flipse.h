@@ -6,6 +6,7 @@
 typedef struct _dockapp {
  GtkSocket *s;
  GdkNativeWindow i;
+ GdkNativeWindow original;
  gchar *name;
  gchar *cmd;
 } DockappNode;
@@ -22,6 +23,7 @@ void scanAllWindows();
 void addWindow( WnckWindow * win );
 int addDapp (DockappNode *dapp);
 void removeDapp (DockappNode *dapp);
+void releaseDapp (DockappNode *dapp);
 int isDockapp( WnckWindow * win );
 gchar *dockappCommand(WnckWindow * w);
 
