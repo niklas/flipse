@@ -1,10 +1,12 @@
 #include <config.h>
+#include <stdio.h>
+#include <string.h>
 #include <X11/Intrinsic.h>
 #include <X11/Xaw/Label.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
-#include <stdio.h>
-#include <string.h>
+#define WNCK_I_KNOW_THIS_IS_UNSTABLE
+#include <libwnck/libwnck.h>
 #include "flipse.h"
 
 #define DEFAULT_DOCKAPP_WIDTH 64
@@ -15,6 +17,7 @@
 
 Display *display = NULL;
 GtkWidget *window = NULL;
+WnckScreen *screen = NULL;
 Flipse *flipse = NULL;
 
 //static Widget toplevel, flipse;
@@ -29,7 +32,20 @@ on_destroy (GtkWidget * widget, gpointer data)
 static void
 on_startup (GtkWidget * widget, gpointer data)
 {
-    scanAllWindows();
+    printf("starting up..\n");
+}
+
+static void
+on_window_opened (WnckScreen *  thescreen, WnckWindow * win, gpointer user_data) {
+    printf("A window got opened\n");
+    if (isDockapp(win))
+        addWindow(win);
+}
+
+static void
+on_dapp_closed (GtkSocket *socket, DockappNode *dapp) {
+    printf("An app closed\n");
+    removeDapp(dapp);
 }
 
 static Flipse* new_flipse() {
@@ -50,60 +66,25 @@ void setSize() {
     gtk_window_set_default_size (GTK_WINDOW (window), 140, 70);
 }
 
-void scanAllWindows() {
-    int dummy_argc=0;
-    int i;
-
-    //Status ok;
-
-    unsigned int children_count;
-    Window root, parent, *children=NULL;
-
-    display = GDK_WINDOW_XDISPLAY(window->window);
-
-    if (children != (Window *) NULL)
-        XFree(children);
-    XQueryTree( display, GDK_ROOT_WINDOW(),
-            &root, &parent, &children, &children_count);
-    for(i = 0; i < children_count; i++) {
-        checkIfIsDockapp (children[i]);
-    }
-}
-
-char* getDockappName ( Window * win ) {
-    char * winName;
-    if (0 != XFetchName (display, * win, &winName))
-        return g_strdup(winName);
-    else
-        return NULL;
-}
-
-void checkIfIsDockapp( Window win ) {
+int isDockapp( WnckWindow * win ) {
     Status ok;
     char* winName;
     XWMHints *wmhints;
 
-    wmhints = XGetWMHints(display, win);
+    wmhints = XGetWMHints(display, wnck_window_get_xid (win));
     if (!wmhints) return;
 
     if (  wmhints->initial_state == WithdrawnState   ||
           wmhints->flags == (WindowGroupHint | StateHint | IconWindowHint)
        ) {
-        // Seems to be a Dockapp
-        ok = XFetchName (display, win, &winName);
-        if (0 != ok) {
-            if (0 != strncmp (winName, "wm", 2)) {
-            }
-            printf("New Dockapp: %s\n", winName);
-            embedWindow(win);
-            XFree(winName);
-        }
+        return(TRUE);
     }
 
-    return;
+    return(FALSE);
 }
 
-void embedWindow(Window win) {
+/* add a Window. please check before if it is a Dockapp */
+void addWindow(WnckWindow * win) {
     Status ok;
     char* winName;
     gchar* command = NULL;
@@ -111,27 +92,29 @@ void embedWindow(Window win) {
     DockappNode *dapp = NULL;
     XWindowAttributes attr;
     XWMHints *wmhints;
+    gulong xid;
 
-    wmhints = XGetWMHints(display, win);
-    ok = XFetchName (display, win, &winName);
+    xid = wnck_window_get_xid(win);
+    wmhints = XGetWMHints(display, xid);
+    ok = XFetchName (display, xid, &winName);
     if (0 != ok) {
-        /*command = dockappCommand(win);
+        command = dockappCommand(win);
         if (!command) {
             XFree(wmhints);
             return;
-        } */
+        }
         dapp = g_new0(DockappNode, 1);
         dapp->s = GTK_SOCKET(gtk_socket_new());
 
         if (wmhints->initial_state == WithdrawnState && wmhints->icon_window) {
             XUnmapWindow(
                     GDK_DISPLAY_XDISPLAY(gdk_display_get_default()),
-                    win
+                    xid
                     );
             dapp->i = wmhints->icon_window;
    
         } else {
-            dapp->i = win; //gdk_x11_drawable_get_xid( GDK_DRAWABLE(win));
+            dapp->i = xid; //gdk_x11_drawable_get_xid( GDK_DRAWABLE(win));
         }
 
         if (!XGetWindowAttributes(display, dapp->i, &attr)) {
@@ -145,7 +128,7 @@ void embedWindow(Window win) {
         if (width > DEFAULT_DOCKAPP_WIDTH || height > DEFAULT_DOCKAPP_HEIGHT) {
             /* This is no dockapp, bigger than 64 pix */
             gtk_widget_destroy (GTK_WIDGET(dapp->s));
-         //   g_free(command);
+            g_free(command);
             g_free(dapp);
             XFree(wmhints);
             return;
@@ -158,6 +141,8 @@ void embedWindow(Window win) {
         gtk_widget_realize (GTK_WIDGET(dapp->s));
         gtk_socket_add_id(dapp->s, dapp->i);
         gtk_widget_show(GTK_WIDGET(dapp->s));
+
+        g_signal_connect(dapp->s, "plug-removed", G_CALLBACK(on_dapp_closed), dapp);
         
         flipse->dapps=g_list_append(flipse->dapps, dapp);
         XFree(winName);
@@ -165,11 +150,19 @@ void embedWindow(Window win) {
 
 }
 
+void removeDapp (DockappNode *dapp) {
+    flipse->dapps = g_list_remove_all(flipse->dapps, dapp);
+    gtk_widget_destroy(GTK_WIDGET(dapp->s));
+    g_free(dapp->name);
+    g_free(dapp->cmd);
+    g_free(dapp);
+}
+
 
 /* find the command to (re)start the dockapp 
  * stolen from wmdock
  * */
-gchar *dockappCommand(Window *w)
+gchar *dockappCommand(WnckWindow * w)
 {
  gchar *cmd = NULL;
  int wpid = 0;
@@ -179,7 +172,7 @@ gchar *dockappCommand(Window *w)
  FILE *procfp = NULL;
  char buf[BUF_MAX];
 
- XGetCommand(display, *w, &argv, &argc);
+ XGetCommand(display, wnck_window_get_xid(w), &argv, &argc);
  if (argc > 0) {
     argv = (char **) realloc(argv, sizeof(char *) * (argc + 1));
     argv[argc] = NULL;
@@ -187,8 +180,7 @@ gchar *dockappCommand(Window *w)
     XFreeStringList(argv);
  } else {
     /* Try to get the command line from the proc fs. */
-    printf("Waahh, cannot get pid yet and don't want to use wnck!\n");
-    return (gchar*) "xeyes";
+    wpid = wnck_window_get_pid (w);
 
     if(wpid) {
        sprintf(buf, "/proc/%d/cmdline", wpid);
@@ -216,7 +208,7 @@ gchar *dockappCommand(Window *w)
  
  if (!cmd) {
   /* If nothing helps fallback to the window name. */
-  cmd = getDockappName(w);
+  cmd = g_strdup(wnck_window_get_name(w));
  }
 
  return(cmd);
@@ -235,6 +227,10 @@ int main (int argc, char **argv) {
     gtk_container_add (GTK_CONTAINER(window), flipse->ebox);
     gtk_widget_show_all (window);
     display = GDK_WINDOW_XDISPLAY(window->window);
+    // FIXME find correct screen for main window
+    screen = wnck_screen_get(0);
+    g_signal_connect(G_OBJECT(screen), "window_opened",
+            G_CALLBACK(on_window_opened), NULL);
     gtk_main ();
     return(0);
 }

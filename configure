@@ -665,6 +665,8 @@ EGREP
 PKG_CONFIG
 GTK_CFLAGS
 GTK_LIBS
+LIBWNCK_CFLAGS
+LIBWNCK_LIBS
 DEPS_CFLAGS
 DEPS_LIBS
 LIBOBJS
@@ -681,7 +683,9 @@ CPPFLAGS
 CPP
 PKG_CONFIG
 GTK_CFLAGS
-GTK_LIBS'
+GTK_LIBS
+LIBWNCK_CFLAGS
+LIBWNCK_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1261,6 +1265,10 @@ Some influential environment variables:
   PKG_CONFIG  path to pkg-config utility
   GTK_CFLAGS  C compiler flags for GTK, overriding pkg-config
   GTK_LIBS    linker flags for GTK, overriding pkg-config
+  LIBWNCK_CFLAGS
+              C compiler flags for LIBWNCK, overriding pkg-config
+  LIBWNCK_LIBS
+              linker flags for LIBWNCK, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -3587,6 +3595,120 @@ LIBS="$LIBS $GTK_LIBS"
 CFLAGS="$CFLAGS $GTK_CFLAGS"
 
 
+pkg_failed=no
+{ echo "$as_me:$LINENO: checking for LIBWNCK" >&5
+echo $ECHO_N "checking for LIBWNCK... $ECHO_C" >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$LIBWNCK_CFLAGS"; then
+        pkg_cv_LIBWNCK_CFLAGS="$LIBWNCK_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libwnck-1.0\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libwnck-1.0") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_LIBWNCK_CFLAGS=`$PKG_CONFIG --cflags "libwnck-1.0" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$LIBWNCK_LIBS"; then
+        pkg_cv_LIBWNCK_LIBS="$LIBWNCK_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libwnck-1.0\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libwnck-1.0") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_LIBWNCK_LIBS=`$PKG_CONFIG --libs "libwnck-1.0" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        LIBWNCK_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libwnck-1.0"`
+        else
+	        LIBWNCK_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libwnck-1.0"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$LIBWNCK_PKG_ERRORS" >&5
+
+	{ { echo "$as_me:$LINENO: error: Package requirements (libwnck-1.0) were not met:
+
+$LIBWNCK_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables LIBWNCK_CFLAGS
+and LIBWNCK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" >&5
+echo "$as_me: error: Package requirements (libwnck-1.0) were not met:
+
+$LIBWNCK_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables LIBWNCK_CFLAGS
+and LIBWNCK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" >&2;}
+   { (exit 1); exit 1; }; }
+elif test $pkg_failed = untried; then
+	{ { echo "$as_me:$LINENO: error: The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables LIBWNCK_CFLAGS
+and LIBWNCK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See \`config.log' for more details." >&5
+echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables LIBWNCK_CFLAGS
+and LIBWNCK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+else
+	LIBWNCK_CFLAGS=$pkg_cv_LIBWNCK_CFLAGS
+	LIBWNCK_LIBS=$pkg_cv_LIBWNCK_LIBS
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+	:
+fi
+LIBS="$LIBS $LIBWNCK_LIBS"
+CFLAGS="$CFLAGS $LIBWNCK_CFLAGS"
+
+
 
 
 # Checks for header files.
@@ -4650,13 +4772,15 @@ EGREP!$EGREP$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
 GTK_CFLAGS!$GTK_CFLAGS$ac_delim
 GTK_LIBS!$GTK_LIBS$ac_delim
+LIBWNCK_CFLAGS!$LIBWNCK_CFLAGS$ac_delim
+LIBWNCK_LIBS!$LIBWNCK_LIBS$ac_delim
 DEPS_CFLAGS!$DEPS_CFLAGS$ac_delim
 DEPS_LIBS!$DEPS_LIBS$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 54; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 56; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

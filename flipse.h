@@ -18,7 +18,10 @@ typedef struct {
 } Flipse;
 
 void scanAllWindows();
-void embedWindow( Window win );
-void checkIfIsDockapp( Window win );
+void addWindow( WnckWindow * win );
+int addDapp (DockappNode *dapp);
+void removeDapp (DockappNode *dapp);
+int isDockapp( WnckWindow * win );
+gchar *dockappCommand(WnckWindow * w);
 
 #endif
