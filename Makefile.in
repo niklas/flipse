@@ -23,7 +23,7 @@ bindir = $(exec_prefix)/bin
 libdir = $(prefix)/lib
 infodir = $(prefix)/info
 
-SOURCES=flipse.c
+SOURCES=flipse.c flipse.h
 DOCS=flipse.texi flipse.info
 MISC=configure mkinstalldirs install-sh aclocal.m4
 OBJS=flipse.o
